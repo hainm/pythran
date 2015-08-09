@@ -1,8 +1,9 @@
 from __future__ import print_function
 from distutils.command.build import build
+from distutils.command.install import install
 from distutils.core import setup, Command
 from subprocess import check_call, check_output
-from urllib import urlopen
+from urllib2 import urlopen
 from zipfile import ZipFile
 from StringIO import StringIO
 
@@ -85,6 +86,8 @@ class BuildWithPly(build):
             print('nt2 archive needed, downloading it')
             url = 'https://github.com/pbrunet/nt2/archive/gemv_release.zip'
             location = urlopen(url)
+            http_code_prefix = location.getcode() / 100
+            assert http_code_prefix not in [4, 5], "Failed to download nt2."
             zipfile = ZipFile(StringIO(location.read()))
             zipfile.extractall(self.build_temp)
             extracted = os.path.dirname(zipfile.namelist()[0])
@@ -131,8 +134,8 @@ class BuildWithPly(build):
         # regular build done by parent class
         build.run(self, *args, **kwargs)
         if not self.dry_run:  # compatibility with the parent options
-            self.build_ply()
             self.build_nt2()
+            self.build_ply()
 
 
 class TestCommand(Command):
@@ -300,10 +303,10 @@ pythonic_headers = ['*/' * i + '*.hpp' for i in range(9)] + ['patch/*']
 
 setup(name='pythran',
       version=__version__,
-      description='a claimless python to c++ converter',
+      description=__descr__,
       author='Serge Guelton',
       author_email='serge.guelton@telecom-bretagne.eu',
-      url='https://github.com/serge-sans-paille/pythran',
+      url=__url__,
       packages=['pythran', 'pythran.analyses', 'pythran.transformations',
                 'pythran.optimizations', 'omp', 'pythran/pythonic',
                 'pythran.types'],
