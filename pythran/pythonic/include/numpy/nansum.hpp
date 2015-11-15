@@ -1,10 +1,10 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_NANSUM_HPP
 #define PYTHONIC_INCLUDE_NUMPY_NANSUM_HPP
 
-#include "pythonic/utils/proxy.hpp"
-#include "pythonic/types/ndarray.hpp"
-#include "pythonic/types/numpy_type.hpp"
-#include "pythonic/numpy/isnan.hpp"
+#include "pythonic/include/utils/proxy.hpp"
+#include "pythonic/include/types/ndarray.hpp"
+#include "pythonic/include/types/numpy_type.hpp"
+#include "pythonic/include/numpy/isnan.hpp"
 
 namespace pythonic
 {
@@ -18,7 +18,7 @@ namespace pythonic
     void _nansum(E begin, E end, F &sum, utils::int_<N>);
 
     template <class E>
-    typename types::numpy_expr_to_ndarray<E>::T nansum(E const &expr);
+    typename E::dtype nansum(E const &expr);
 
     PROXY_DECL(pythonic::numpy, nansum);
   }

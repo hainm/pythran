@@ -1,7 +1,7 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_EDIFF1D_HPP
 #define PYTHONIC_INCLUDE_NUMPY_EDIFF1D_HPP
 
-#include "pythonic/numpy/asarray.hpp"
+#include "pythonic/include/numpy/asarray.hpp"
 
 namespace pythonic
 {
@@ -9,8 +9,7 @@ namespace pythonic
   namespace numpy
   {
     template <class E>
-    types::ndarray<typename types::numpy_expr_to_ndarray<E>::T, 1>
-    ediff1d(E const &expr);
+    types::ndarray<typename E::dtype, 1> ediff1d(E const &expr);
 
     template <class E>
     auto ediff1d(types::list<E> const &expr)

@@ -2,8 +2,9 @@
 #define PYTHONIC_INCLUDE_ITERTOOLS_IFILTER_HPP
 
 #include "pythonic/include/utils/iterator.hpp"
-#include "pythonic/types/list.hpp"
-#include "pythonic/itertools/common.hpp"
+#include "pythonic/include/types/list.hpp"
+#include "pythonic/include/itertools/common.hpp"
+#include "pythonic/include/utils/proxy.hpp"
 
 #include <iterator>
 #include <type_traits>

@@ -1,8 +1,8 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_NONZERO_HPP
 #define PYTHONIC_INCLUDE_NUMPY_NONZERO_HPP
 
-#include "pythonic/utils/proxy.hpp"
-#include "pythonic/types/ndarray.hpp"
+#include "pythonic/include/utils/proxy.hpp"
+#include "pythonic/include/types/ndarray.hpp"
 
 namespace pythonic
 {
@@ -19,8 +19,7 @@ namespace pythonic
 
     template <class E>
     auto nonzero(E const &expr)
-        -> types::array<types::ndarray<long, 1>,
-                        types::numpy_expr_to_ndarray<E>::N>;
+        -> types::array<types::ndarray<long, 1>, E::value>;
 
     PROXY_DECL(pythonic::numpy, nonzero)
   }

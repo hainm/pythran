@@ -233,9 +233,13 @@ class TestNdarray(TestEnv):
                       numpy_uint64=[int])
 
     def test_numpy_np_float(self):
-        self.run_test("def numpy_float(n): import numpy ; return numpy.ones(n, numpy.float)",
+        """ Check dtype == numpy.float for numpy array. """
+        self.run_test("""
+            def numpy_np_float(n):
+                import numpy
+                return numpy.ones(n, numpy.float)""",
                       5,
-                      numpy_float=[int])
+                      numpy_np_float=[int])
 
     def test_numpy_complex(self):
         self.run_test("def numpy_complex(n): import numpy ; return numpy.ones(n, numpy.complex)",
@@ -388,9 +392,6 @@ def assign_ndarray(t):
     def test_shape_(self):
         self.run_test("def np_shape_(a): return a.shape", numpy.array([[[1,2],[3,4]],[[5,6],[7,8]]]), np_shape_=[numpy.array([[[int]]])])
 
-    def test_change_array1D_(self):
-        self.run_test("def np_change_array1D_(a):\n a[0,0,0] = 36\n return a", numpy.array([[[1,2],[3,4]],[[5,6],[7,8]]]), np_change_array1D_=[numpy.array([[[int]]])])
-
     def test_change_arrayND_(self):
         self.run_test("def np_change_arrayND_(a):\n from numpy import array\n a[0,0] = array([99,99])\n return a", numpy.array([[[1,2],[3,4]],[[5,6],[7,8]]]), np_change_arrayND_=[numpy.array([[[int]]])])
 
@@ -453,30 +454,6 @@ def assign_ndarray(t):
 
     def test_sliced13(self):
         self.run_test("def np_sliced13(a): return a[3::-3]", numpy.arange(11), np_sliced13=[numpy.array([int])])
-
-    def test_count_nonzero0(self):
-        self.run_test("def np_count_nonzero(a): from numpy import count_nonzero; return count_nonzero(a)",
-                      numpy.array([[-1, -5, -2, 7], [9, 3, 0, -0]]), np_count_nonzero=[numpy.array([[int]])])
-
-    def test_count_nonzero1(self):
-        self.run_test("def np_count_nonzero(a): from numpy import count_nonzero; return count_nonzero(a)",
-                       numpy.array([-1, 5, -2, 0]), np_count_nonzero=[numpy.array([int])])
-
-    def test_count_nonzero2(self):
-        self.run_test("def np_count_nonzero(a): from numpy import count_nonzero; return count_nonzero(a)",
-                      numpy.array([-1., 0., -2., -1e-20]), np_count_nonzero=[numpy.array([float])])
-
-    def test_count_nonzero3(self):
-        self.run_test("def np_count_nonzero(a): from numpy import count_nonzero; return count_nonzero(a)",
-                      numpy.array([[0, 2, 0., 4 + 1j], [0.+0.j, 0.+4j, 1.+0j, 1j]]), np_count_nonzero=[numpy.array([[complex]])])
-
-    def test_count_nonzero4(self):
-        self.run_test("def np_count_nonzero(a): from numpy import count_nonzero; return count_nonzero(a)",
-                      numpy.array([[True, False], [False, False]]), np_count_nonzero=[numpy.array([[bool]])])
-
-    def test_count_nonzero5(self):
-        self.run_test("def np_count_nonzero(a): from numpy import count_nonzero; return count_nonzero(a*2)",
-                      numpy.array([[-1, -5, -2, 7], [9, 3, 0, -0]]), np_count_nonzero=[numpy.array([[int]])])
 
     def test_newaxis0(self):
         self.run_test("def np_newaxis0(a): return a[None]",
@@ -597,4 +574,19 @@ def assign_ndarray(t):
         self.run_test("def gexpr_copy0(a,b): a[:,0] = b[:,0]; return a",
                       numpy.arange(16).reshape(8,2), numpy.arange(16).reshape(8,2),
                       gexpr_copy0=[numpy.array([[int]]), numpy.array([[int]])])
+
+    def test_ndarray_iter0(self):
+        self.run_test("def ndarray_iter0(a): return map(str, a)",
+                      numpy.arange(16),
+                      ndarray_iter0=[numpy.array([int])])
+
+    def test_ndarray_iter1(self):
+        self.run_test("""
+                      def ndarray_iter1(a):
+                        s = 0
+                        for v in a:
+                            s *= v
+                        return s""",
+                      numpy.arange(16),
+                      ndarray_iter1=[numpy.array([int])])
 

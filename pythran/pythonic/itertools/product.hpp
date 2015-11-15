@@ -4,6 +4,7 @@
 #include "pythonic/include/itertools/product.hpp"
 #include "pythonic/utils/iterator.hpp"
 #include "pythonic/itertools/common.hpp"
+#include "pythonic/utils/proxy.hpp"
 
 #include <iterator>
 #include <type_traits>
@@ -24,7 +25,7 @@ namespace pythonic
                                                    utils::seq<I...> const &)
           : it_begin(std::get<I>(_iters).begin()...),
             it_end(std::get<I>(_iters).end()...),
-            it(std::get<I>(_iters).begin()...), end(false)
+            it(std::get<I>(_iters).begin()...), end(it_begin == it_end)
       {
       }
 

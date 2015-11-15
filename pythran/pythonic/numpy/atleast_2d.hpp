@@ -11,8 +11,7 @@ namespace pythonic
   namespace numpy
   {
     template <class T>
-    typename std::enable_if<std::is_scalar<T>::value or
-                                types::is_complex<T>::value,
+    typename std::enable_if<types::is_dtype<T>::value,
                             types::ndarray<T, 2>>::type
     atleast_2d(T t)
     {
@@ -20,21 +19,18 @@ namespace pythonic
     }
 
     template <class T>
-            auto atleast_2d(T const &t) -> typename std::enable_if <
-            not(std::is_scalar<T>::value or types::is_complex<T>::value) and
-        types::numpy_expr_to_ndarray<T>::N<
-            2,
-            types::ndarray<
-                typename types::numpy_expr_to_ndarray<T>::type::dtype, 2>>::type
+            auto atleast_2d(T const &t) ->
+            typename std::enable_if < (not types::is_dtype<T>::value) and
+        T::value<2, types::ndarray<typename T::dtype, 2>>::type
     {
       return t.reshape(types::make_tuple(1L, t.shape()[0]));
     }
 
     template <class T>
     auto atleast_2d(T &&t) -> typename std::enable_if<
-        not(std::is_scalar<T>::value or types::is_complex<T>::value) and
-            types::numpy_expr_to_ndarray<typename std::remove_cv<
-                typename std::remove_reference<T>::type>::type>::N >= 2,
+        (not types::is_dtype<typename std::remove_cv<
+            typename std::remove_reference<T>::type>::type>::value) and
+            std::decay<T>::type::value >= 2,
         decltype(std::forward<T>(t))>::type
     {
       return std::forward<T>(t);

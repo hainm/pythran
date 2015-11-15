@@ -1,12 +1,12 @@
 #ifndef PYTHONIC_INCLUDE_TYPES_TUPLE_HPP
 #define PYTHONIC_INCLUDE_TYPES_TUPLE_HPP
 
-#include "pythonic/types/assignable.hpp"
-#include "pythonic/types/content_of.hpp"
-#include "pythonic/types/traits.hpp"
-#include "pythonic/utils/int_.hpp"
-#include "pythonic/utils/seq.hpp"
-#include "pythonic/utils/nested_container.hpp"
+#include "pythonic/include/types/assignable.hpp"
+#include "pythonic/include/types/content_of.hpp"
+#include "pythonic/include/types/traits.hpp"
+#include "pythonic/include/utils/int_.hpp"
+#include "pythonic/include/utils/seq.hpp"
+#include "pythonic/include/utils/nested_container.hpp"
 
 #ifdef USE_BOOST_SIMD
 #include <boost/simd/sdk/simd/native.hpp>
@@ -15,6 +15,7 @@
 #endif
 
 #include <tuple>
+#include <algorithm>
 
 // Equality comparison between pair and tuple
 namespace std
@@ -57,6 +58,9 @@ namespace pythonic
     struct str;
 
     struct slice;
+
+    template <class Arg, class... S>
+    struct numpy_gexpr;
 
     /* helper to extract the tail of a tuple, and pop the head */
     template <int Offset, class T, int... N>
@@ -185,6 +189,9 @@ namespace pythonic
       template <class... Types>
       operator std::tuple<Types...>() const;
 
+      template <class Tp>
+      operator array<Tp, N>() const;
+
       auto to_tuple() const
           -> decltype(array_to_tuple(*this, typename utils::gens<N>::type{},
                                      typename utils::gen_type<N, T>::type{}));
@@ -218,6 +225,11 @@ namespace pythonic
         static bool const value = true;
         using type = typename std::remove_cv<
             typename std::remove_reference<T>::type>::type;
+      };
+      template <class A, class... S>
+      struct alike<numpy_gexpr<A, S...>, numpy_gexpr<A const &, S...>> {
+        static bool const value = true;
+        using type = numpy_gexpr<A, S...>;
       };
 
       template <class T0, class T1>
@@ -382,8 +394,6 @@ namespace std
   };
 }
 
-#include <boost/functional/hash/extensions.hpp>
-
 /* and boost's */
 namespace pythonic
 {
@@ -399,7 +409,7 @@ namespace pythonic
 }
 
 /* type inference stuff  {*/
-#include "pythonic/types/combined.hpp"
+#include "pythonic/include/types/combined.hpp"
 template <class K, class... Types>
 struct __combined<indexable<K>, std::tuple<Types...>> {
   using type = std::tuple<Types...>;
@@ -494,17 +504,11 @@ namespace pythonic
           T>::type;
     };
 
-    template <class Ch, class Tr, class Tuple, size_t I>
-    void print_tuple(std::basic_ostream<Ch, Tr> &os, Tuple const &t,
-                     utils::int_<I>);
+    template <class Tuple, size_t I>
+    void print_tuple(std::ostream &os, Tuple const &t, utils::int_<I>);
 
-    template <class Ch, class Tr, class Tuple>
-    void print_tuple(std::basic_ostream<Ch, Tr> &os, Tuple const &t,
-                     utils::int_<0>);
-
-    template <class Ch, class Traits, class... Args>
-    std::ostream &operator<<(std::basic_ostream<Ch, Traits> &os,
-                             std::tuple<Args...> const &t);
+    template <class Tuple>
+    void print_tuple(std::ostream &os, Tuple const &t, utils::int_<0>);
 
     template <class T, size_t N>
     struct len_of<array<T, N>> {
@@ -518,60 +522,28 @@ namespace pythonic
   }
 }
 
+namespace std
+{
+  template <class... Args>
+  ostream &operator<<(ostream &os, tuple<Args...> const &t);
+}
 #ifdef ENABLE_PYTHON_MODULE
 
-#include "pythonic/python/register_once.hpp"
-#include "pythonic/python/extract.hpp"
-#include "pythonic/utils/seq.hpp"
-#include "pythonic/utils/fwd.hpp"
+#include "pythonic/include/utils/seq.hpp"
+#include "pythonic/include/utils/fwd.hpp"
+#include "pythonic/python/core.hpp"
 
 namespace pythonic
 {
 
-  template <typename... Types>
-  struct python_to_pythran<std::tuple<Types...>> {
-    python_to_pythran();
-    static void *convertible(PyObject *obj_ptr);
-
-    template <int... S>
-    static void
-    do_construct(PyObject *obj_ptr,
-                 boost::python::converter::rvalue_from_python_stage1_data *data,
-                 utils::seq<S...>);
-
-    static void
-    construct(PyObject *obj_ptr,
-              boost::python::converter::rvalue_from_python_stage1_data *data);
-  };
-
-  template <typename T, size_t N>
-  struct python_to_pythran<types::array<T, N>> {
-    python_to_pythran();
-    static void *convertible(PyObject *obj_ptr);
-
-    template <int... S>
-    static void
-    do_construct(PyObject *obj_ptr,
-                 boost::python::converter::rvalue_from_python_stage1_data *data,
-                 utils::seq<S...>);
-
-    static void
-    construct(PyObject *obj_ptr,
-              boost::python::converter::rvalue_from_python_stage1_data *data);
-  };
-
   template <typename K, typename V>
-  struct custom_pair_to_tuple {
+  struct to_python<std::pair<K, V>> {
     static PyObject *convert(std::pair<K, V> const &t);
   };
 
-  template <typename K, typename V>
-  struct pythran_to_python<std::pair<K, V>> {
-    pythran_to_python();
-  };
-
   template <typename... Types>
-  struct custom_tuple_to_tuple {
+  struct to_python<std::tuple<Types...>> {
+
     template <int... S>
     static PyObject *do_convert(std::tuple<Types...> const &t,
                                 utils::seq<S...>);
@@ -579,19 +551,37 @@ namespace pythonic
     static PyObject *convert(std::tuple<Types...> const &t);
   };
 
-  template <typename... Types>
-  struct pythran_to_python<std::tuple<Types...>> {
-    pythran_to_python();
-  };
-
   template <typename T, size_t N>
-  struct custom_array_to_tuple {
+  struct to_python<types::array<T, N>> {
+    template <int... S>
+    static PyObject *do_convert(types::array<T, N> const &t, utils::seq<S...>);
+
     static PyObject *convert(types::array<T, N> const &t);
   };
 
+  template <typename... Types>
+  struct from_python<std::tuple<Types...>> {
+
+    template <int... S>
+    static bool do_is_convertible(PyObject *obj, typename utils::seq<S...>);
+
+    static bool is_convertible(PyObject *obj);
+
+    template <int... S>
+    static std::tuple<Types...> do_convert(PyObject *obj,
+                                           typename utils::seq<S...>);
+    static std::tuple<Types...> convert(PyObject *obj);
+  };
+
   template <typename T, size_t N>
-  struct pythran_to_python<types::array<T, N>> {
-    pythran_to_python();
+  struct from_python<types::array<T, N>> {
+
+    static bool is_convertible(PyObject *obj);
+
+    template <int... S>
+    static types::array<T, N> do_convert(PyObject *obj,
+                                         typename utils::seq<S...>);
+    static types::array<T, N> convert(PyObject *obj);
   };
 }
 #endif

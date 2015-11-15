@@ -1,7 +1,7 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_FLOAT_HPP
 #define PYTHONIC_INCLUDE_NUMPY_FLOAT_HPP
 
-#include "pythonic/utils/proxy.hpp"
+#include "pythonic/include/utils/proxy.hpp"
 
 namespace pythonic
 {
@@ -9,7 +9,7 @@ namespace pythonic
   namespace numpy
   {
 
-    float float_();
+    double float_();
 
     PROXY_DECL(pythonic::numpy, float_);
   }

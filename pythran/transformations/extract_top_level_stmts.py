@@ -15,14 +15,22 @@ class ExtractTopLevelStmts(Transformation):
         module_body = list()
         init_body = list()
         for stmt in node.body:
-            if type(stmt) in ExtractTopLevelStmts.TYPEDEFS:
+            if isinstance(stmt, ExtractTopLevelStmts.TYPEDEFS):
                 module_body.append(stmt)
             else:
                 init_body.append(stmt)
-        init = ast.FunctionDef('__init__',
-                               ast.arguments([], None, None, []),
-                               init_body,
-                               [])
-        module_body.append(init)
-        node.body = module_body
+
+        if init_body:
+            self.update = True
+            init = ast.FunctionDef('__init__',
+                                   ast.arguments([], None, None, []),
+                                   init_body,
+                                   [])
+            module_body.append(init)
+            node.body = module_body
+        self.has_init = bool(init_body)
         return node
+
+    def run(self, node, ctx):
+        super(ExtractTopLevelStmts, self).run(node, ctx)
+        return self.has_init

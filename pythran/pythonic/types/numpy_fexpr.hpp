@@ -4,7 +4,6 @@
 #include "pythonic/include/types/numpy_fexpr.hpp"
 
 #include "pythonic/types/nditerator.hpp"
-#include "pythonic/types/numexpr_to_ndarray.hpp"
 
 namespace pythonic
 {
@@ -28,6 +27,8 @@ namespace pythonic
       _copy_mask(filter.begin(), filter.end(), iter, index,
                  utils::int_<std::remove_reference<
                      typename std::remove_cv<Arg>::type>::type::value>());
+      // FIXME {iter - buffer} is a long long int? (Windows say that...
+      // and warn us)
       _shape[0] = {iter - buffer};
     }
 

@@ -1,8 +1,7 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_TRACE_HPP
 #define PYTHONIC_INCLUDE_NUMPY_TRACE_HPP
 
-#include "pythonic/utils/proxy.hpp"
-#include "pythonic/types/numexpr_to_ndarray.hpp"
+#include "pythonic/include/utils/proxy.hpp"
 
 namespace pythonic
 {
@@ -11,8 +10,7 @@ namespace pythonic
   {
 
     template <class T>
-    typename types::numpy_expr_to_ndarray<T>::T trace(T const &expr,
-                                                      int offset = 0);
+    typename T::dtype trace(T const &expr, int offset = 0);
 
     PROXY_DECL(pythonic::numpy, trace)
   }

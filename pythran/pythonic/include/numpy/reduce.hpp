@@ -1,10 +1,10 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_REDUCE_HPP
 #define PYTHONIC_INCLUDE_NUMPY_REDUCE_HPP
 
-#include "pythonic/types/ndarray.hpp"
-#include "pythonic/__builtin__/None.hpp"
-#include "pythonic/__builtin__/ValueError.hpp"
-#include "pythonic/utils/neutral.hpp"
+#include "pythonic/include/types/ndarray.hpp"
+#include "pythonic/include/__builtin__/None.hpp"
+#include "pythonic/include/__builtin__/ValueError.hpp"
+#include "pythonic/include/utils/neutral.hpp"
 
 #ifdef USE_BOOST_SIMD
 #include <boost/simd/include/functions/broadcast.hpp>
@@ -19,29 +19,6 @@ namespace pythonic
   namespace numpy
   {
 
-    template <class Op, size_t N, bool vector_form>
-    struct _reduce;
-
-    template <class Op, bool vector_form>
-    struct _reduce<Op, 1, vector_form> {
-      template <class E, class F>
-      F operator()(E e, F acc);
-    };
-
-#ifdef USE_BOOST_SIMD
-    template <class Op>
-    struct _reduce<Op, 1, true> {
-      template <class E, class F>
-      F operator()(E e, F acc);
-    };
-#endif
-
-    template <class Op, size_t N, bool vector_form>
-    struct _reduce {
-      template <class E, class F>
-      F operator()(E e, F acc);
-    };
-
     namespace
     {
       template <class E>
@@ -51,8 +28,20 @@ namespace pythonic
     }
 
     template <class Op, class E>
-    reduce_result_type<E> reduce(E const &expr,
-                                 types::none_type _ = types::none_type());
+    typename std::enable_if<types::is_numexpr_arg<E>::value,
+                            reduce_result_type<E>>::type
+    reduce(E const &expr, types::none_type _ = types::none_type());
+
+    template <class Op, class E>
+    typename std::enable_if<
+        std::is_scalar<E>::value or types::is_complex<E>::value, E>::type
+    reduce(E const &expr, types::none_type _ = types::none_type());
+
+    template <class Op, class E>
+    auto reduce(E const &array, long axis) ->
+        typename std::enable_if<std::is_scalar<E>::value or
+                                    types::is_complex<E>::value,
+                                decltype(reduce<Op>(array))>::type;
 
     template <class Op, class E>
     auto reduce(E const &array, long axis) ->

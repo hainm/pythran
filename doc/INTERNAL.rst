@@ -1,6 +1,5 @@
-=========
 Internals
-=========
+#########
 
 This document describes some internals of Pythran compiler.
 
@@ -337,6 +336,5 @@ Pythran preserves docstrings::
     $> pythran docstrings.py
     $> python -c 'import docstrings; print(docstrings.__doc__); print(docstrings.foo.__doc__)'
     top-level-docstring
-    <BLANKLINE>
     function-level-docstring
     $> rm -f docstrings.*

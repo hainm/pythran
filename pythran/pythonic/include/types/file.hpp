@@ -1,16 +1,16 @@
 #ifndef PYTHONIC_INCLUDE_TYPES_FILE_HPP
 #define PYTHONIC_INCLUDE_TYPES_FILE_HPP
 
-#include "pythonic/types/assignable.hpp"
-#include "pythonic/utils/shared_ref.hpp"
-#include "pythonic/types/str.hpp"
-#include "pythonic/types/list.hpp"
-#include "pythonic/types/none.hpp"
-#include "pythonic/types/attr.hpp"
-#include "pythonic/__builtin__/IOError.hpp"
-#include "pythonic/__builtin__/ValueError.hpp"
-#include "pythonic/__builtin__/RuntimeError.hpp"
-#include "pythonic/__builtin__/StopIteration.hpp"
+#include "pythonic/include/types/assignable.hpp"
+#include "pythonic/include/utils/shared_ref.hpp"
+#include "pythonic/include/types/str.hpp"
+#include "pythonic/include/types/list.hpp"
+#include "pythonic/include/types/none.hpp"
+#include "pythonic/include/types/attr.hpp"
+#include "pythonic/include/__builtin__/IOError.hpp"
+#include "pythonic/include/__builtin__/ValueError.hpp"
+#include "pythonic/include/__builtin__/RuntimeError.hpp"
+#include "pythonic/include/__builtin__/StopIteration.hpp"
 
 #include <fstream>
 #include <iterator>
@@ -51,8 +51,6 @@ namespace pythonic
 
     struct _file {
       FILE *f;
-      char *_buffer; // Buffer used by file.readline()
-      size_t _buffer_size;
       _file();
       _file(types::str const &filename, types::str const &strmode = "r");
       FILE *operator*() const;
@@ -106,7 +104,7 @@ namespace pythonic
 
       types::str read(int size = -1);
 
-      types::str readline(ssize_t size = std::numeric_limits<ssize_t>::max());
+      types::str readline(long size = std::numeric_limits<long>::max());
 
       types::list<types::str> readlines(int sizehint = -1);
 

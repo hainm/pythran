@@ -1,9 +1,9 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_DIFF_HPP
 #define PYTHONIC_INCLUDE_NUMPY_DIFF_HPP
 
-#include "pythonic/utils/proxy.hpp"
-#include "pythonic/types/ndarray.hpp"
-#include "pythonic/numpy/asarray.hpp"
+#include "pythonic/include/utils/proxy.hpp"
+#include "pythonic/include/types/ndarray.hpp"
+#include "pythonic/include/numpy/asarray.hpp"
 
 namespace pythonic
 {
@@ -12,8 +12,7 @@ namespace pythonic
   {
 
     template <class E>
-    typename types::numpy_expr_to_ndarray<E>::type diff(E const &expr,
-                                                        long n = 1);
+    types::ndarray<typename E::dtype, E::value> diff(E const &expr, long n = 1);
 
     PROXY_DECL(pythonic::numpy, diff);
   }

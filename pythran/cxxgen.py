@@ -29,6 +29,10 @@ Generator for C/C++.
 
 from __future__ import division
 from textwrap import dedent
+import networkx as nx
+from pythran.tables import pythran_ward, functions
+from pythran.intrinsic import ConstExceptionIntr
+import sys
 
 __copyright__ = "Copyright (C) 2008 Andreas Kloeckner"
 
@@ -67,7 +71,7 @@ class Declarator(Generable):
         making up the bulk of the declarator syntax.
         """
 
-    def inline(self, with_semicolon=True):
+    def inline(self):
         """Return the declarator as a single line."""
         tp_lines, tp_decl = self.get_decl_pair()
         tp_lines = " ".join(tp_lines)
@@ -198,8 +202,8 @@ class Struct(Declarator):
 # template --------------------------------------------------------------------
 class Template(NestedDeclarator):
     def __init__(self, template_spec, subdecl):
+        super(Template, self).__init__(subdecl)
         self.template_spec = template_spec
-        self.subdecl = subdecl
 
     def generate(self, with_semicolon=False):
         yield "template <%s>" % ", ".join(self.template_spec)
@@ -229,7 +233,7 @@ class ExceptHandler(Generable):
 
 
 class TryExcept(Generable):
-    def __init__(self, try_, except_, else_=None):
+    def __init__(self, try_, except_):
         self.try_ = try_
         assert isinstance(try_, Generable)
         self.except_ = except_
@@ -273,6 +277,7 @@ class If(Generable):
 
 class Loop(Generable):
     def __init__(self, body):
+        assert isinstance(body, Generable)
         self.body = body
 
     def generate(self):
@@ -285,11 +290,10 @@ class Loop(Generable):
 
 class While(Loop):
     def __init__(self, condition, body):
+        super(While, self).__init__(body)
         if condition[0] == '(' and condition[-1] == ')':
             condition = condition[1:-1]
         self.condition = condition
-        assert isinstance(body, Generable)
-        self.body = body
 
     def intro_line(self):
         return "while (%s)" % self.condition
@@ -297,27 +301,23 @@ class While(Loop):
 
 class For(Loop):
     def __init__(self, start, condition, update, body):
+        super(For, self).__init__(body)
         self.start = start
         self.condition = condition
         self.update = update
-
-        assert isinstance(body, Generable)
-        self.body = body
 
     def intro_line(self):
         return "for (%s; %s; %s)" % (self.start, self.condition, self.update)
 
 
 class AutoFor(Loop):
-    def __init__(self, target, iter, body):
+    def __init__(self, target, iter_, body):
+        super(AutoFor, self).__init__(body)
         self.target = target
-        self.iter = iter
-
-        assert isinstance(body, Generable)
-        self.body = body
+        self.iter = iter_
 
     def intro_line(self):
-        return ("for (typename decltype({1})::iterator::reference "
+        return ("for (auto&& "
                 "{0}: {1})".format(self.target,
                                    self.iter))
 
@@ -411,8 +411,11 @@ class FunctionBody(Generable):
 
 # block -----------------------------------------------------------------------
 class Block(Generable):
-    def __init__(self, contents=[]):
-        self.contents = contents[:]
+    def __init__(self, contents=None):
+        if contents is None:
+            self.contents = []
+        else:
+            self.contents = contents[:]
         for item in self.contents:
             assert isinstance(item, Generable), item
 
@@ -432,7 +435,9 @@ class Module(Block):
 
 
 class Namespace(Block):
-    def __init__(self, name, contents=[]):
+    def __init__(self, name, contents=None):
+        if contents is None:
+            contents = []
         Block.__init__(self, contents)
         self.name = name
 
@@ -471,60 +476,245 @@ class Namespace(Block):
 # SOFTWARE.
 #
 
-class BoostPythonModule(object):
-    def __init__(self, name="module", docstrings=None):
+class PythonModule(object):
+    '''
+    Wraps the creation of a Pythran module wrapped a Python native Module
+    '''
+    def __init__(self, name, docstrings, metadata, has_init):
+        '''
+        Builds an empty PythonModule
+        '''
         self.name = name
         self.preamble = []
-        self.init_body = []
-        self.mod_body = []
-        self.docstrings = docstrings or {}
+        self.includes = []
+        self.functions = {}
+        self.implems = []
+        self.wrappers = []
+        self.docstrings = docstrings
+        self.has_init = has_init
 
-        moduledoc = self.docstrings.get(None, "")
-        if moduledoc:
-            self.add_to_init(
-                Statement('boost::python::scope().attr("__doc__") = ' +
-                          self.docstring(moduledoc)))
+        self.metadata = metadata
+        moduledoc = self.docstring(self.docstrings.get(None, ""))
+        self.metadata['moduledoc'] = moduledoc
 
-        self.add_to_preamble(
-            Include("boost/python/docstring_options.hpp"))
-        self.add_to_init(
-            Statement('boost::python::docstring_options '
-                      'pythran_docstring_options(true, false, false)'))
+        self._init_catches()
+
+    def _init_catches(self):
+        '''
+        Initialize the catch handler used by all pythran-generated functions
+        '''
+        # topologically sorted exceptions based on the inheritance hierarchy.
+        # needed because otherwise boost python register_exception handlers
+        # do not catch exception type in the right way
+        # (first valid exception is selected)
+        # Inheritance has to be taken into account in the registration order.
+        exceptions = nx.DiGraph()
+        for function_name, v in functions.iteritems():
+            for mname, symbol in v:
+                if isinstance(symbol, ConstExceptionIntr):
+                    exceptions.add_node(
+                        getattr(sys.modules[".".join(mname)], function_name))
+
+        # add edges based on class relationships
+        for n in exceptions:
+            if n.__base__ in exceptions:
+                exceptions.add_edge(n.__base__, n)
+
+        sorted_exceptions = nx.topological_sort(exceptions)
+
+        self.catches = ['''
+            #ifdef PYTHONIC_BUILTIN_{uname}_HPP
+                catch(pythonic::types::{name} & e) {{
+                    PyErr_SetString(PyExc_{name},
+                       pythonic::__builtin__::proxy::str{{}}(e.args).c_str());
+                }}
+            #endif
+                '''.format(name=n.__name__,
+                           uname=n.__name__.upper())
+                        for n in sorted_exceptions]
+
+        self.catches.append('''
+            catch(...) {
+                PyErr_SetString(PyExc_RuntimeError,
+                    "Something happened on the way to heaven"
+                );
+            }''')
 
     def docstring(self, doc):
         return '"%s"' % (dedent(doc).replace('"', '\\"')
                                     .replace('\n', '\\n')
                                     .replace('\r', '\\r'))
 
-    def add_to_init(self, *body):
-        """Add the blocks or statements contained in the iterable *body* to the
-        module initialization function.
-        """
-        self.init_body.extend(body)
-
     def add_to_preamble(self, *pa):
         self.preamble.extend(pa)
 
-    def add_function(self, func, name):
-        """Add a function to be exposed. *func* is expected to be a
-        :class:`cgen.FunctionBody`.
-        """
-        doc = self.docstrings.get(name, '')
-        bpdef = "boost::python::def(\"%s\", &%s, %s)" % (name,
-                                                         func.fdecl.name,
-                                                         self.docstring(doc))
+    def add_to_includes(self, *incl):
+        self.includes.extend(incl)
 
-        self.mod_body.append(func)
-        self.init_body.append(Statement(bpdef))
+    def add_meta(self, infos):
+        self.infos = infos
+
+    def add_function(self, func, name, types):
+        """
+        Add a function to be exposed. *func* is expected to be a
+        :class:`cgen.FunctionBody`.
+
+        Because a function can have several signatures exported,
+        this method actually creates a wrapper for each specialization
+        and a global wrapper that checks the argument types and
+        runs the correct candidate, if any
+        """
+        self.implems.append(func)
+
+        args_unboxing = []  # turns PyObject to c++ object
+        args_checks = []  # check if the above conversion is valid
+        wrapper_name = pythran_ward + 'wrap_' + func.fdecl.name
+
+        for i, t in enumerate(types):
+            args_unboxing.append('from_python<{}>(args_obj[{}])'.format(t, i))
+            args_checks.append('is_convertible<{}>(args_obj[{}])'.format(t, i))
+        if types:
+            wrapper = '''
+                static PyObject *
+                {wname}(PyObject *self, PyObject *args)
+                {{
+                    PyObject* args_obj[{size}+1];
+                    PyArg_ParseTuple(args, "{fmt}", {objs});
+                    if({checks})
+                        return to_python({name}({args}));
+                    else {{
+                        return nullptr;
+                    }}
+                }}'''
+        else:
+            wrapper = '''
+                static PyObject *
+                {wname}(PyObject *self, PyObject *args)
+                {{
+                    return to_python({name}({args}));
+                }}'''
+
+        self.wrappers.append(
+            wrapper.format(name=func.fdecl.name,
+                           size=len(types),
+                           fmt="O" * len(types),
+                           objs=', '.join('&args_obj[%d]' % i
+                                          for i in range(len(types))),
+                           args=', '.join(args_unboxing),
+                           checks=' and '.join(args_checks),
+                           wname=wrapper_name,
+                           )
+        )
+
+        func_descriptor = wrapper_name, types
+        self.functions.setdefault(name, []).append(func_descriptor)
 
     def generate(self):
         """Generate (i.e. yield) the source code of the
         module line-by-line.
         """
-        body = (self.preamble + [Line()] +
-                self.mod_body +
-                [Line(), Line("BOOST_PYTHON_MODULE(%s)" % self.name)] +
-                [Block(self.init_body)])
+        themethods = []
+        theoverloads = []
+        for fname, overloads in self.functions.items():
+            tryall = []
+            candidates = []
+            for overload, types in overloads:
+                try_ = """
+                    if(PyObject* obj = {name}(self, args))
+                        return obj;
+                    """.format(name=overload)
+                tryall.append(try_)
+                theargs = (t.replace("pythonic::types::", "")
+                            .replace('::', '.')
+                           for t in types)
+                thecall = "{}({})".format(fname,
+                                          ",".join(theargs))
+                candidates.append(thecall)
+
+            wrapper_name = pythran_ward + 'wrapall_' + fname
+
+            candidate = '''
+            static PyObject *
+            {wname}(PyObject *self, PyObject *args)
+            {{
+                try {{
+                {tryall}
+                PyErr_SetString(PyExc_TypeError,
+                    "Invalid argument type for pythranized function `{name}'."
+                    "Candidates were:\\n{candidates}\\n"
+                );
+                return nullptr;
+                }}
+                {catches}
+                return nullptr;
+            }}
+            '''.format(name=fname,
+                       tryall="\n".join(tryall),
+                       candidates="\\n".join("   " + c for c in candidates),
+                       catches='\n'.join(self.catches),
+                       wname=wrapper_name)
+
+            fdoc = self.docstring(self.docstrings.get(fname, ''))
+            themethod = '''{{
+                "{name}",
+                {wname},
+                METH_VARARGS,
+                {doc}}}'''.format(name=fname,
+                                  wname=wrapper_name,
+                                  doc=fdoc)
+            themethods.append(themethod)
+            theoverloads.append(candidate)
+
+        methods = '''
+            static PyMethodDef Methods[] = {{
+                {methods}
+                {{NULL, NULL, 0, NULL}}
+            }};
+            '''.format(methods="".join(m + "," for m in themethods))
+
+        module_init = ""
+        if self.has_init:
+            module_init = '''
+                try {{
+                    {ward}{module_name}::__init__()();
+                }}
+                {catches}
+            '''.format(module_name=self.name,
+                       ward=pythran_ward,
+                       catches='\n'.join(self.catches))
+
+        module = '''
+            PyMODINIT_FUNC
+            init{name}(void) {{
+                #ifdef PYTHONIC_TYPES_NDARRAY_HPP
+                    import_array()
+                #endif
+                PyObject* theModule = Py_InitModule3("{name}",
+                                                     Methods,
+                                                     {moduledoc}
+                );
+                if(not theModule)
+                    return;
+                PyObject * theDoc = Py_BuildValue("(sss)",
+                                                  "{version}",
+                                                  "{date}",
+                                                  "{hash}");
+                if(not theDoc)
+                    return;
+                PyModule_AddObject(theModule,
+                                   "__pythran__",
+                                   theDoc);
+                {module_init}
+            }}
+            '''.format(name=self.name,
+                       module_init=module_init,
+                       **self.metadata)
+
+        body = (self.preamble +
+                self.includes +
+                self.implems +
+                map(Line, self.wrappers + theoverloads) +
+                [Line(methods), Line(module)])
 
         return Module(body)
 

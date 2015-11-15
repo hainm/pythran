@@ -56,6 +56,7 @@ class RemoveNamedArguments(Transformation):
 
     def visit_Call(self, node):
         if node.keywords:
+            self.update = True
 
             aliases = self.aliases[node.func].aliases
             assert aliases, "at least one alias"
@@ -67,7 +68,7 @@ class RemoveNamedArguments(Transformation):
                 for func_alias in aliases:
                     if func_alias is None:  # aliasing computation failed
                         pass
-                    elif type(func_alias) is ast.Call:  # nested function
+                    elif isinstance(func_alias, ast.Call):  # nested function
                         # func_alias looks like functools.partial(foo, a)
                         # so we reorder using alias for 'foo'
                         offset = len(func_alias.args) - 1

@@ -1,10 +1,10 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_NANMAX_HPP
 #define PYTHONIC_INCLUDE_NUMPY_NANMAX_HPP
 
-#include "pythonic/utils/proxy.hpp"
-#include "pythonic/types/ndarray.hpp"
-#include "pythonic/__builtin__/ValueError.hpp"
-#include "pythonic/numpy/isnan.hpp"
+#include "pythonic/include/utils/proxy.hpp"
+#include "pythonic/include/types/ndarray.hpp"
+#include "pythonic/include/__builtin__/ValueError.hpp"
+#include "pythonic/include/numpy/isnan.hpp"
 
 namespace pythonic
 {
@@ -18,7 +18,7 @@ namespace pythonic
     void _nanmax(E begin, E end, F &max, utils::int_<N>);
 
     template <class E>
-    typename types::numpy_expr_to_ndarray<E>::T nanmax(E const &expr);
+    typename E::dtype nanmax(E const &expr);
 
     PROXY_DECL(pythonic::numpy, nanmax);
   }

@@ -1,6 +1,5 @@
-==================
 Developer Tutorial
-==================
+##################
 
 This is a long tutorial to help new Pythran developer discover the Pythran
 architecture. This is *not* a developer documentation, but it aims at giving a
@@ -54,7 +53,7 @@ One first need to instantiate a pass manager with a module name::
 
 The pass manager has 3 methods and an attribute::
 
-  >>> [x for x in dir(pm) if not x.startswith('__')]
+  >>> [x for x in dir(pm) if not x.startswith('_')]
   ['apply', 'dump', 'gather', 'module_name']
 
 ``apply``

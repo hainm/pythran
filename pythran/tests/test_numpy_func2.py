@@ -257,6 +257,12 @@ def test_copy0(x):
     def test_asarray3(self):
         self.run_test("def np_asarray3(a):\n from numpy import asarray; b = asarray(a) ; return a is b", numpy.arange(3), np_asarray3=[numpy.array([int])])
 
+    def test_asfarray0(self):
+        self.run_test("def np_asfarray0(a):\n from numpy import asfarray; b = asfarray(a) ; return a is b", numpy.arange(3.), np_asfarray0=[numpy.array([float])])
+
+    def test_asfarray1(self):
+        self.run_test("def np_asfarray1(a):\n from numpy import asfarray; b = asfarray(a) ; return a is not b", numpy.arange(3), np_asfarray1=[numpy.array([int])])
+
     def test_array_str0(self):
         self.run_test("def np_array_str0(x): from numpy import array_str ; return array_str(x)", numpy.arange(3), np_array_str0=[numpy.array([int])])
 
@@ -318,7 +324,11 @@ def test_copy0(x):
         self.run_test("def np_around1(x): from numpy import around ; return around(x, 1)", [0.37, 1.64], np_around1=[[float]])
 
     def test_around2(self):
-        self.run_test("def np_around2(x): from numpy import  around ; return around(x, -1)", [0.37, 1.64], np_around2=[[float]])
+        """ Check rounding on the left side of comma. """
+        self.run_test("""
+            def np_around2(x):
+                from numpy import around
+                return around(x, -1)""", [37.4, 164.65], np_around2=[[float]])
 
     def test_around3(self):
         self.run_test("def np_around3(x): from numpy import around ; return around(x)", [.5, 1.5, 2.5, 3.5, 4.5], np_around3=[[float]])
@@ -377,6 +387,9 @@ def test_copy0(x):
     def test_any2(self):
         self.run_test("def np_any2(a): from numpy import any ; return any(a)", [-1, 0, 5], np_any2=[[int]])
 
+    def test_any3(self):
+        self.run_test("def np_any3(a): from numpy import any ; return any(a).any(0)", [-1, 0, 5], np_any3=[[int]])
+
     def test_array1D_(self):
         self.run_test("def np_array1D_(a):\n from numpy import array\n return array(a)", [1,2,3], np_array1D_=[[int]])
 
@@ -402,7 +415,13 @@ def test_copy0(x):
         self.run_test("import numpy\n\ndef input_array_(a):\n return a.shape", numpy.array([[1,2],[3,4]]), input_array_=[numpy.array([[int]])])
 
     def test_change_array1D_(self):
-        self.run_test("def np_change_array1D_(a):\n a[0,0,0] = 36\n return a", numpy.array([[[1,2],[3,4]],[[5,6],[7,8]]]), np_change_array1D_=[numpy.array([[[int]]])])
+        """ Assign to lowest dimension of an array. """
+        self.run_test("""
+            def np_change_array1D_(a):
+                a[0, 0, 0] = 36
+                return a""",
+                      numpy.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]]),
+                      np_change_array1D_=[numpy.array([[[int]]])])
 
     def test_str_(self):
         self.run_test("def np_str_(a): return str(a)", numpy.array([[[1,2],[3,4]],[[5,6],[7,8]]]), np_str_=[numpy.array([[[int]]])])
@@ -415,6 +434,9 @@ def test_copy0(x):
 
     def test_empty_kwargs(self):
         self.run_test("def np_empty_kwargs(a):\n from numpy import empty\n a = empty(a, dtype=int)\n return a.strides, len(a)", (3, 2), np_empty_kwargs=[(int, int)])
+
+    def test_empty_kwargs2(self):
+        self.run_test("def np_empty_kwargs2(a):\n from numpy import empty, float\n a = empty(a, dtype=float)\n return a.strides, a.shape", 3, np_empty_kwargs2=[int])
 
     def test_arange(self):
         self.run_test("def np_arange_(a):\n from numpy import arange\n return arange(a)", 10, np_arange_=[int])
@@ -455,6 +477,9 @@ def test_copy0(x):
     def test_arange12(self):
         self.run_test("def np_arange12_(a):\n from numpy import arange, float32\n return arange(a, 25, 1., float32)", 0, np_arange12_=[int])
 
+    def test_arange13(self):
+        self.run_test("def np_arange12_(a):\n from numpy import arange, float32\n return arange(a, 25, dtype=float32)", 0, np_arange12_=[int])
+
     def test_linspace(self):
         self.run_test("def np_linspace_(a):\n from numpy import linspace\n return linspace(a,4,32)", 1, np_linspace_=[int])
 
@@ -485,32 +510,32 @@ def test_copy0(x):
     def test_empty_like_1(self):
         """ Check empty_like numpy function without specified dtype. """
         code = """
-def np_empty_like_(a):
-    from numpy import empty_like
-    b = empty_like(a)
-    for i in xrange(2):
-        for j in xrange(3):
-            for k in xrange(4):
-                b[i, j, k] = i + j + k
-    return b"""
+            def np_empty_like_1(a):
+                from numpy import empty_like
+                b = empty_like(a)
+                for i in xrange(2):
+                    for j in xrange(3):
+                        for k in xrange(4):
+                            b[i, j, k] = i + j + k
+                return b"""
         self.run_test(code,
                       numpy.arange(2 * 3 * 4).reshape(2, 3, 4),
-                      np_empty_like_=[numpy.array([[[int]]])])
+                      np_empty_like_1=[numpy.array([[[int]]])])
 
     def test_empty_like_2(self):
         """ Check empty_like numpy function with specific dtype argument. """
         code = """
-def np_empty_like_(a):
-    from numpy import empty_like
-    b = empty_like(a, dtype=float)
-    for i in xrange(2):
-        for j in xrange(3):
-            for k in xrange(4):
-                b[i, j, k] = i + j + k
-    return b"""
+            def np_empty_like_2(a):
+                from numpy import empty_like
+                b = empty_like(a, dtype=float)
+                for i in xrange(2):
+                    for j in xrange(3):
+                        for k in xrange(4):
+                            b[i, j, k] = i + j + k
+                return b"""
         self.run_test(code,
                       numpy.arange(2 * 3 * 4).reshape(2, 3, 4),
-                      np_empty_like_=[numpy.array([[[int]]])])
+                      np_empty_like_2=[numpy.array([[[int]]])])
 
     def test_reshape0(self):
         self.run_test("def np_reshape0(a): return a.reshape((2,5))", numpy.arange(10), np_reshape0=[numpy.array([int])])
@@ -537,6 +562,25 @@ def np_broadcast():
     a = numpy.arange(3)
     return a, a"""
         self.run_test(code, np_broadcast=[])
+
+    def test_broadcast_slice(self):
+        """Check that slicing an expression involving a broadcast works. """
+        code = """
+            def np_broadcast_slice(n):
+                import numpy
+                a = numpy.arange(n).reshape(2, n/2)
+                return (a + 1)[:,1:]"""
+        self.run_test(code, 20, np_broadcast_slice=[int])
+
+    def test_broadcast_slice_again(self):
+        """Check that slicing an expression involving a broadcast works. """
+        code = """
+            def np_broadcast_slice_again(n):
+                import numpy
+                a = numpy.arange(n).reshape(2, n/2)
+                b = numpy.arange(n/2)
+                return (a + b)[:,1:]"""
+        self.run_test(code, 20, np_broadcast_slice_again=[int])
 
     def test_broadcast_dup(self):
         """Check that ndarray returned twice doesn't double free (reshaping)."""
@@ -570,5 +614,14 @@ def np_broadcast_dup():
 
     def test_sum_bool(self):
         self.run_test("def np_sum_bool(a): return (a > 2).sum()", numpy.arange(10), np_sum_bool=[numpy.array([int])])
+
+    def test_sum_scalar0(self):
+        self.run_test("def np_sum_scalar0(a): return a.sum().sum()", numpy.arange(10), np_sum_scalar0=[numpy.array([int])])
+
+    def test_sum_scalar1(self):
+        self.run_test("def np_sum_scalar1(a): return a.sum().sum(0)", numpy.arange(10), np_sum_scalar1=[numpy.array([int])])
+
+    def test_sum_neg_shape(self):
+        self.run_test("def np_sum_neg_shape(a): return a.sum(axis=-1)", numpy.arange(10).reshape(5,2), np_sum_neg_shape=[numpy.array([[int]])])
 
 

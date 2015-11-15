@@ -1,10 +1,10 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_COPY_HPP
 #define PYTHONIC_INCLUDE_NUMPY_COPY_HPP
 
-#include "pythonic/utils/proxy.hpp"
-#include "pythonic/utils/numpy_conversion.hpp"
-#include "pythonic/types/ndarray.hpp"
-#include "pythonic/types/ndarray.hpp"
+#include "pythonic/include/utils/proxy.hpp"
+#include "pythonic/include/utils/numpy_conversion.hpp"
+#include "pythonic/include/types/ndarray.hpp"
+#include "pythonic/include/types/ndarray.hpp"
 
 namespace pythonic
 {
@@ -13,16 +13,15 @@ namespace pythonic
   {
     // list case
     template <class E>
-    typename std::enable_if<
-        !types::is_array<E>::value and !std::is_scalar<E>::value and
-            !types::is_complex<E>::value,
-        typename types::numpy_expr_to_ndarray<E>::type>::type
+    typename std::enable_if<!types::is_array<E>::value and
+                                !types::is_dtype<E>::value,
+                            types::ndarray<typename E::dtype, E::value>>::type
     copy(E const &v);
 
     // scalar / complex case
     template <class E>
-    auto copy(E const &v) -> typename std::enable_if<
-        std::is_scalar<E>::value or types::is_complex<E>::value, E>::type;
+    auto copy(E const &v) ->
+        typename std::enable_if<types::is_dtype<E>::value, E>::type;
 
     // No copy is required for numpy_expr
     template <class E>

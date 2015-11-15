@@ -1,7 +1,7 @@
 #ifndef PYTHONIC_INCLUDE_TYPES_NUMPY_EXPR_HPP
 #define PYTHONIC_INCLUDE_TYPES_NUMPY_EXPR_HPP
 
-#include "pythonic/utils/meta.hpp"
+#include "pythonic/include/utils/meta.hpp"
 
 namespace pythonic
 {
@@ -98,13 +98,16 @@ namespace pythonic
       long _flat_size(utils::seq<I...>) const;
 
       long flat_size() const;
+
+      long size() const;
     };
   }
 
-  template <class Op, class... Arg>
-  struct assignable<types::numpy_expr<Op, Arg...>> {
-    using type = typename types::numpy_expr_to_ndarray<
-        types::numpy_expr<Op, Arg...>>::type;
+  template <class Op, class... Args>
+  struct assignable<types::numpy_expr<Op, Args...>> {
+    using type =
+        types::ndarray<typename pythonic::types::numpy_expr<Op, Args...>::dtype,
+                       pythonic::types::numpy_expr<Op, Args...>::value>;
   };
 
   template <class Op, class... Arg>
@@ -113,7 +116,7 @@ namespace pythonic
   };
 }
 /* type inference stuff  {*/
-#include "pythonic/types/combined.hpp"
+#include "pythonic/include/types/combined.hpp"
 template <class Op, class K, class... Args>
 struct __combined<pythonic::types::numpy_expr<Op, Args...>, indexable<K>> {
   using type = pythonic::types::numpy_expr<Op, Args...>;
@@ -149,8 +152,9 @@ struct __combined<pythonic::types::numpy_expr<Op, Args...>, container<K>> {
 template <class Op, class Op2, class... Args, class... Args2>
 struct __combined<pythonic::types::numpy_expr<Op, Args...>,
                   pythonic::types::numpy_expr<Op2, Args2...>> {
-  using type = typename pythonic::types::numpy_expr_to_ndarray<
-      pythonic::types::numpy_expr<Op, Args...>>::type;
+  using type = pythonic::types::ndarray<
+      typename pythonic::types::numpy_expr<Op, Args...>::dtype,
+      pythonic::types::numpy_expr<Op, Args...>::value>;
 };
 
 /*}*/

@@ -1,8 +1,8 @@
 #ifndef PYTHONIC_INCLUDE_TYPES_NUMPY_IEXPR_HPP
 #define PYTHONIC_INCLUDE_TYPES_NUMPY_IEXPR_HPP
 
-#include "pythonic/types/nditerator.hpp"
-#include "pythonic/types/tuple.hpp"
+#include "pythonic/include/types/nditerator.hpp"
+#include "pythonic/include/types/tuple.hpp"
 
 #ifdef USE_BOOST_SIMD
 #include <boost/simd/sdk/simd/native.hpp>
@@ -74,28 +74,31 @@ namespace pythonic
 
       template <class E>
       numpy_iexpr &operator=(E const &expr);
-
       numpy_iexpr &operator=(numpy_iexpr const &expr);
 
       template <class E>
       numpy_iexpr &operator+=(E const &expr);
-
       numpy_iexpr &operator+=(numpy_iexpr const &expr);
 
       template <class E>
       numpy_iexpr &operator-=(E const &expr);
-
       numpy_iexpr &operator-=(numpy_iexpr const &expr);
 
       template <class E>
       numpy_iexpr &operator*=(E const &expr);
-
       numpy_iexpr &operator*=(numpy_iexpr const &expr);
 
       template <class E>
       numpy_iexpr &operator/=(E const &expr);
-
       numpy_iexpr &operator/=(numpy_iexpr const &expr);
+
+      template <class E>
+      numpy_iexpr &operator&=(E const &expr);
+      numpy_iexpr &operator&=(numpy_iexpr const &expr);
+
+      template <class E>
+      numpy_iexpr &operator|=(E const &expr);
+      numpy_iexpr &operator|=(numpy_iexpr const &expr);
 
       const_iterator begin() const;
       const_iterator end() const;
@@ -259,7 +262,7 @@ namespace pythonic
 }
 
 /* type inference stuff  {*/
-#include "pythonic/types/combined.hpp"
+#include "pythonic/include/types/combined.hpp"
 template <class E, class K>
 struct __combined<pythonic::types::numpy_iexpr<E>, K> {
   using type = pythonic::types::numpy_iexpr<E>;

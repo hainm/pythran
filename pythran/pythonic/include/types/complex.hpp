@@ -2,7 +2,6 @@
 #define PYTHONIC_INCLUDE_TYPES_COMPLEX_HPP
 
 #include <complex>
-#include <nt2/sdk/complex/complex.hpp>
 
 namespace std
 {
@@ -27,7 +26,7 @@ namespace pythonic
 
 /* for type inference { */
 
-#include "pythonic/types/combined.hpp"
+#include "pythonic/include/types/combined.hpp"
 template <class K>
 struct __combined<indexable<K>, std::complex<double>> {
   using type = std::complex<double>;
@@ -39,5 +38,25 @@ struct __combined<std::complex<double>, indexable<K>> {
 };
 
 /* } */
+
+#ifdef ENABLE_PYTHON_MODULE
+
+#include "pythonic/python/core.hpp"
+
+namespace pythonic
+{
+
+  template <class T>
+  struct to_python<std::complex<T>> {
+    static PyObject *convert(std::complex<T> const &c);
+  };
+
+  template <class T>
+  struct from_python<std::complex<T>> {
+    static bool is_convertible(PyObject *obj);
+    static std::complex<T> convert(PyObject *obj);
+  };
+}
+#endif
 
 #endif

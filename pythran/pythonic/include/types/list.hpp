@@ -1,13 +1,13 @@
 #ifndef PYTHONIC_INCLUDE_TYPES_LIST_HPP
 #define PYTHONIC_INCLUDE_TYPES_LIST_HPP
 
-#include "pythonic/types/assignable.hpp"
-#include "pythonic/types/empty_iterator.hpp"
-#include "pythonic/utils/shared_ref.hpp"
-#include "pythonic/utils/reserve.hpp"
-#include "pythonic/utils/nested_container.hpp"
-#include "pythonic/utils/int_.hpp"
-#include "pythonic/types/slice.hpp"
+#include "pythonic/include/types/assignable.hpp"
+#include "pythonic/include/types/empty_iterator.hpp"
+#include "pythonic/include/utils/shared_ref.hpp"
+#include "pythonic/include/utils/reserve.hpp"
+#include "pythonic/include/utils/nested_container.hpp"
+#include "pythonic/include/utils/int_.hpp"
+#include "pythonic/include/types/slice.hpp"
 
 #include <iostream>
 #include <vector>
@@ -347,7 +347,7 @@ namespace std
 }
 
 /* type inference stuff  {*/
-#include "pythonic/types/combined.hpp"
+#include "pythonic/include/types/combined.hpp"
 
 template <class A>
 struct __combined<container<A>, pythonic::types::empty_list> {
@@ -408,53 +408,23 @@ struct __combined<pythonic::types::list<T0>, pythonic::types::list<T1>> {
 
 #ifdef ENABLE_PYTHON_MODULE
 
-#include "pythonic/python/register_once.hpp"
-#include "pythonic/python/extract.hpp"
-#include <boost/python/object.hpp>
-
 namespace pythonic
 {
-
   template <typename T>
-  struct custom_pythran_list_to_list {
-    static PyObject *convert(const types::list<T> &v);
+  struct to_python<types::list<T>> {
+    static PyObject *convert(types::list<T> const &v);
   };
-
-  /*
-   This specialization is a workaround for a boost::python bug triggered when
-   using std::vector<bool> and libc++.
-   Indeed v[i] returns a wrapper class to keep a reference to the bit in the
-   bitset. The issue is that operator& is overloaded and prevent taking the
-   address of the wrapper class.
-   This is a copy paste of the generic case, plus a cast to (bool) to get rid
-   of the wrapper.
-   The cast can't be added to the generic version because casting may trigger
-   an extra copy that is not what we want for heavy objects
-   */
   template <>
-  struct custom_pythran_list_to_list<bool> {
-    static PyObject *convert(const types::list<bool> &v);
-  };
-
-  template <typename T>
-  struct pythran_to_python<types::list<T>> {
-    pythran_to_python();
-  };
-
-  template <typename T>
-  struct python_to_pythran<types::list<T>> {
-    python_to_pythran();
-    static void *convertible(PyObject *obj_ptr);
-    static void
-    construct(PyObject *obj_ptr,
-              boost::python::converter::rvalue_from_python_stage1_data *data);
-  };
-  struct custom_empty_list_to_list {
+  struct to_python<types::empty_list> {
     static PyObject *convert(types::empty_list const &);
   };
-  template <>
-  struct pythran_to_python<types::empty_list> {
-    pythran_to_python();
+
+  template <class T>
+  struct from_python<types::list<T>> {
+
+    static bool is_convertible(PyObject *obj);
+
+    static types::list<T> convert(PyObject *obj);
   };
 }
 

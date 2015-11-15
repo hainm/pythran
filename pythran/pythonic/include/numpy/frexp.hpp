@@ -1,10 +1,10 @@
 #ifndef PYTHONIC_INCLUDE_NUMPY_FREXP_HPP
 #define PYTHONIC_INCLUDE_NUMPY_FREXP_HPP
 
-#include "pythonic/utils/proxy.hpp"
-#include "pythonic/utils/numpy_conversion.hpp"
-#include "pythonic/types/traits.hpp"
-#include "pythonic/types/ndarray.hpp"
+#include "pythonic/include/utils/proxy.hpp"
+#include "pythonic/include/utils/numpy_conversion.hpp"
+#include "pythonic/include/types/traits.hpp"
+#include "pythonic/include/types/ndarray.hpp"
 
 namespace pythonic
 {
@@ -25,11 +25,10 @@ namespace pythonic
 
     template <class E>
     typename std::enable_if<
-        not std::is_scalar<E>::value and not types::is_complex<E>::value,
-        std::tuple<typename types::numpy_expr_to_ndarray<E>::type,
-                   types::ndarray<int, types::numpy_expr_to_ndarray<E>::N>>>::
-        type
-        frexp(E const &arr);
+        not types::is_dtype<E>::value,
+        std::tuple<types::ndarray<typename E::dtype, E::value>,
+                   types::ndarray<int, E::value>>>::type
+    frexp(E const &arr);
 
     PROXY_DECL(pythonic::numpy, frexp);
   }
